@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yes/No Voting</title>
+    <script>
+        const server = 'https://9lw68f5hti.execute-api.us-east-1.amazonaws.com/prod';
+        const login_server = 'https://moraviancs.auth.us-east-1.amazoncognito.com/login?client_id=4mj3dno2vv2h2je57tumlge4dq&response_type=token&scope=email+openid&redirect_uri=https%3A%2F%2Fprod.d3rsf3r4r0yd2f.amplifyapp.com%2Fcallback.html';
+
+        function handleAuth() {
+            if (localStorage.getItem('bearer_str')) {
+                // Redirect to sign out page if logged in
+                window.location = location.origin + '/sign_out.html';
+            } else {
+                // Redirect to login page if not logged in
+                window.location.href = login_server;
+            }
+        }
+
+        function updateAuthButton() {
+            const authButton = document.getElementById('authButton');
+            if (localStorage.getItem('bearer_str')) {
+                authButton.innerText = "Logout";
+            } else {
+                authButton.innerText = "Login";
+            }
+        }
+
+        async function sendVote(vote) {
+            const bearerToken = localStorage.getItem('bearer_str');
+            if (!bearerToken) {
+                alert('You must be logged in to vote.');
+                return;
+            }
+
+            try {
+                const response = await fetch(server + '/vote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${bearerToken}`
+                    },
+                    body: JSON.stringify({ vote: vote })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('results').innerText = `Yes: ${data.yes} No: ${data.no}`;
+                } else {
+                    alert('Failed to register vote. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while registering vote');
+            }
+        }
+
+        async function updateResults() {
+            try {
+                const response = await fetch(server + '/results');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('results').innerText = `Yes: ${data.yes} No: ${data.no}`;
+                } else {
+                    alert('Failed to fetch results');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while fetching results');
+            }
+        }
+
+        window.onload = () => {
+            updateAuthButton();
+            updateResults();
+        };
+    </script>
+</head>
+<body>
+    <button id="authButton" onclick="handleAuth()">Login</button>
+    <h1>Please vote</h1>
+    <button onclick="sendVote('yes')">YES</button>
+    <button onclick="sendVote('no')">NO</button>
+    
+    <h2>Current Results:</h2>
+    <div id="results">Fetching results...</div>
+</body>
+</html>
